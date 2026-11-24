@@ -1,0 +1,115 @@
+// AI 보훈이 프로토타입 — 임베디드 DB (SQLite)
+// LLM 은 DB 에 직접 접근하지 않고, 서버의 tool 핸들러를 통해서만 읽고 씁니다.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id               Int           @id @default(autoincrement())
+  name             String
+  phone            String
+  hospital         String
+  guardianName     String?
+  guardianRelation String?
+  guardianPhone    String?
+  appointments     Appointment[]
+  calls            Call[]
+  callbacks        Callback[]
+}
+
+model Appointment {
+  id           Int      @id @default(autoincrement())
+  patientId    Int
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  at           DateTime
+  department   String
+  location     String
+  exams        String? // 예: "채혈 및 복부 초음파" (없으면 금식 없음)
+  examWhen     String? // 예: "오전"
+  fastingStart String? // 예: "밤 10시" (검사 전날)
+  status       String   @default("예약") // 예약 | 내원 확정 | 변경 요청
+  calls        Call[]
+}
+
+/** 병원 안내 지식 (FAQ). 검색은 FTS5 가상 테이블 knowledge_fts 로 (seed 에서 생성) */
+model KnowledgeArticle {
+  id      String @id
+  topic   String
+  content String
+  tags    String
+}
+
+model Call {
+  id            String      @id @default(cuid())
+  patientId     Int
+  patient       Patient     @relation(fields: [patientId], references: [id])
+  appointmentId Int
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  status        String // 진행 중 | 내원 확정 | 변경 요청 접수 | 재통화 필요 | 상담원 콜백 | 긴급 이관 | 통화 중단
+  phase         String // 화면 표시용 진행 단계
+  state         String // 에이전트 상태 JSON (본인 확인 여부 등 — tool 가드에 사용)
+  history       String // LLM 대화 기록 JSON (Anthropic messages 형식)
+  respondent    String      @default("unknown") // unknown | patient | guardian
+  requestedSlot String?
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  turns         Turn[]
+  toolCalls     ToolCall[]
+  callbacks     Callback[]
+  smsLogs       SmsLog[]
+}
+
+model Turn {
+  id        Int      @id @default(autoincrement())
+  callId    String
+  call      Call     @relation(fields: [callId], references: [id])
+  seq       Int
+  speaker   String // agent | user | system
+  text      String
+  segments  String? // TTS 세그먼트 JSON
+  latencyMs Int?
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model ToolCall {
+  id        Int      @id @default(autoincrement())
+  callId    String
+  call      Call     @relation(fields: [callId], references: [id])
+  turnSeq   Int // 어느 사용자 턴에서 호출됐는지
+  name      String
+  input     String // JSON
+  output    String // JSON
+  ok        Boolean
+  latencyMs Int
+  createdAt DateTime @default(now())
+}
+
+model Callback {
+  id        Int      @id @default(autoincrement())
+  callId    String
+  call      Call     @relation(fields: [callId], references: [id])
+  patientId Int
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  level     String // red | yellow
+  reason    String
+  status    String   @default("대기")
+  createdAt DateTime @default(now())
+}
+
+model SmsLog {
+  id            Int      @id @default(autoincrement())
+  callId        String
+  call          Call     @relation(fields: [callId], references: [id])
+  recipientType String // patient | guardian
+  recipientName String
+  phone         String
+  channel       String // 알림톡 | SMS
+  body          String
+  createdAt     DateTime @default(now())
+}

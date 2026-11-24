@@ -1,0 +1,18 @@
+{
+  "name": "ai-bohuni-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI 보훈이 — 시나리오 1 (진료·검사 예약 사전 안내 해피콜) 음성 에이전트 프로토타입",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run db:setup -w server && concurrently -k -n server,web -c blue,green \"npm run dev -w server\" \"npm run dev -w web\"",
+    "test": "npm test -w server && npm test -w web",
+    "build": "npm run build -w server && npm run build -w web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

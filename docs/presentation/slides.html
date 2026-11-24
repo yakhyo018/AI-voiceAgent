@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<!--
+  발표 자료 (6쪽: 5쪽 슬라이드 + 1쪽 발표 노트), 3개 언어
+  slides.html?lang=ko | en | uz  →  build.sh 가 Chrome headless 로 PDF 생성
+  (발표자용 6쪽 + 공유용 5쪽 _share, ?notes=0)
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>AI 보훈이 — 발표</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+  body {
+    font-family: "Apple SD Gothic Neo", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #14233a; word-break: keep-all; overflow-wrap: break-word;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  :root {
+    --navy: #10294a; --ink: #14233a; --muted: #5d6b80; --line: #e3e8ef;
+    --teal: #0f8a7a; --teal-bg: #e7f5f2; --red: #d24b4b; --red-bg: #fdecec;
+    --amber: #b7860b; --amber-bg: #fdf5e0; --blue-bg: #eef3fb; --soft: #f6f8fb;
+  }
+  .slide {
+    width: 1280px; height: 720px; position: relative; overflow: hidden;
+    padding: 56px 72px 48px; page-break-after: always; break-after: page;
+    display: flex; flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;
+    font-size: 15px; color: var(--muted); letter-spacing: .02em; }
+  .top .tag { color: var(--teal); font-weight: 700; }
+  h1 { font-size: 40px; line-height: 1.2; color: var(--navy); letter-spacing: -.01em; }
+  h2 { font-size: 34px; line-height: 1.25; color: var(--navy); letter-spacing: -.01em; margin-bottom: 8px; }
+  .lead { font-size: 19px; color: var(--muted); margin-bottom: 26px; }
+  .foot { position: absolute; left: 72px; right: 72px; bottom: 24px; display: flex; justify-content: space-between;
+    font-size: 13px; color: #9aa5b5; }
+
+  /* 1. title */
+  .cover { background: linear-gradient(135deg, #10294a 0%, #173a63 60%, #0f6f68 100%); color: #fff; padding: 72px 80px; }
+  .cover .kicker { font-size: 18px; color: #9fe3d6; font-weight: 600; margin-bottom: 22px; }
+  .cover h1 { color: #fff; font-size: 54px; margin-bottom: 18px; }
+  .cover .sub { font-size: 22px; color: #d6e2f0; margin-bottom: 54px; }
+  .stats { display: flex; gap: 22px; }
+  .stat { flex: 1; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18); border-radius: 16px; padding: 22px 26px; }
+  .stat b { display: block; font-size: 40px; color: #fff; margin-bottom: 6px; }
+  .stat span { font-size: 17px; color: #d6e2f0; }
+  .cover .hook { margin-top: auto; font-size: 21px; color: #fff; border-left: 4px solid #5fd3bf; padding-left: 18px; line-height: 1.45; }
+  .cover .foot { color: #9fb3cc; }
+
+  /* 2. pipeline */
+  .pipe { display: flex; align-items: stretch; gap: 0; margin-bottom: 22px; }
+  .step { flex: 1; background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 16px 14px 14px; position: relative; }
+  .step .n { width: 30px; height: 30px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; margin-bottom: 10px; }
+  .step .t { font-size: 19px; font-weight: 700; color: var(--navy); margin-bottom: 6px; line-height: 1.25; }
+  .step .d { font-size: 15.5px; color: var(--muted); line-height: 1.45; }
+  .step.safe { background: var(--red-bg); border-color: #f3c9c9; } .step.safe .n { background: var(--red); }
+  .step.llm { background: var(--teal-bg); border-color: #bfe5dd; } .step.llm .n { background: var(--teal); }
+  .arrow { width: 22px; display: flex; align-items: center; justify-content: center; color: #9aa5b5; font-size: 20px; flex: 0 0 22px; }
+  .example { background: #fff; border: 1px dashed #c7d0dc; border-radius: 14px; padding: 18px 24px; font-size: 18px; line-height: 1.7; margin-bottom: 20px; }
+  .example .q { font-weight: 700; color: var(--navy); }
+  .example code { background: var(--blue-bg); border-radius: 6px; padding: 1px 7px; font-size: 15px; font-family: Menlo, monospace; color: #1d4a8a; }
+  .timeline { display: flex; height: 50px; border-radius: 10px; overflow: hidden; font-size: 14.5px; font-weight: 600; color: #fff; }
+  .timeline div { display: flex; align-items: center; justify-content: center; padding: 0 10px; white-space: nowrap; }
+  .note { margin-top: 14px; font-size: 16.5px; color: var(--muted); }
+
+  /* 3. architecture */
+  .arch { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 22px; align-items: stretch; margin-bottom: 22px; }
+  .box { border-radius: 16px; padding: 22px 24px; border: 1px solid var(--line); background: var(--soft); }
+  .box h3 { font-size: 22px; color: var(--navy); margin-bottom: 12px; }
+  .box ul { list-style: none; } .box li { font-size: 18px; line-height: 1.6; padding-left: 18px; position: relative; margin-bottom: 4px; }
+  .box li::before { content: "•"; position: absolute; left: 2px; color: var(--teal); font-weight: 700; }
+  .box.llm { background: var(--teal-bg); border-color: #bfe5dd; }
+  .box.srv { background: var(--blue-bg); border-color: #cfdcf0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: #fff; border: 1px solid #d5dde8; border-radius: 999px; padding: 7px 14px; font-size: 16.5px; font-weight: 600; color: var(--navy); }
+  .chip.r { border-color: #f0b9b9; color: var(--red); }
+  .guard { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; font-size: 18.5px; line-height: 1.6; }
+  .guard .x { color: var(--red); font-weight: 700; } .guard .ok { color: var(--teal); font-weight: 700; }
+  .db { margin-top: 18px; font-size: 17.5px; line-height: 1.5; color: var(--muted); }
+  .db b { color: var(--navy); }
+
+  /* 4. problems */
+  table.ps { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+  table.ps th { text-align: left; font-size: 16px; color: var(--muted); font-weight: 600; padding: 0 18px 2px; }
+  table.ps td { background: var(--soft); padding: 12px 20px; font-size: 17px; line-height: 1.4; vertical-align: middle; }
+  table.ps td:first-child { border-radius: 12px 0 0 12px; font-weight: 700; color: var(--navy); width: 36%; }
+  table.ps td:last-child { border-radius: 0 12px 12px 0; }
+  table.ps td .i { display: inline-block; width: 28px; }
+  .arrowcell { width: 30px; color: var(--teal); font-weight: 700; text-align: center; padding: 0 !important; }
+
+  /* 5. results */
+  .two { display: grid; grid-template-columns: 1fr 1.2fr; gap: 26px; flex: 1; }
+  .kpi { display: flex; gap: 14px; margin-bottom: 18px; }
+  .kpi div { flex: 1; background: var(--teal-bg); border-radius: 14px; padding: 16px 18px; }
+  .kpi b { display: block; font-size: 28px; white-space: nowrap; color: var(--teal); }
+  .kpi span { font-size: 15.5px; color: var(--muted); line-height: 1.35; display: block; margin-top: 4px; }
+  .next { counter-reset: n; list-style: none; }
+  .next li { counter-increment: n; position: relative; padding: 12px 16px 12px 58px; background: var(--soft); border-radius: 12px; margin-bottom: 12px; font-size: 18px; line-height: 1.5; }
+  .next li::before { content: counter(n); position: absolute; left: 16px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .next li b { color: var(--navy); }
+  .closing { margin-top: 18px; background: var(--navy); color: #fff; border-radius: 14px; padding: 18px 26px; font-size: 24px; font-weight: 700; text-align: center; }
+
+  /* 6. presenter notes */
+  .notes { background: #fbfaf6; }
+  .notes .badge { display: inline-block; background: var(--amber-bg); color: var(--amber); font-weight: 700; font-size: 14px; border-radius: 999px; padding: 4px 12px; margin-bottom: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 18px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card .h { font-size: 15px; font-weight: 700; color: var(--teal); margin-bottom: 6px; }
+  .card p { font-size: 16.5px; line-height: 1.5; }
+  .card p.say { font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1.25fr; gap: 16px; }
+  .card ol, .card ul { padding-left: 20px; } .card li { font-size: 16.5px; line-height: 1.6; margin-bottom: 2px; }
+  .card li b { color: var(--navy); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const I18N = {
+ko: {
+  foot: 'AI 보훈이 · 시나리오 1 프로토타입',
+  s1: {
+    kicker: '보훈병원 · 시나리오 1 · 진료·검사 예약 사전 안내 해피콜',
+    title: 'AI 보훈이<br>스크립트 없이 대화하는 음성 에이전트',
+    sub: 'STT → LLM (tool calling) → TTS · 브라우저에서 바로 시연',
+    stats: [['10/10', '명세서 분기 실제 LLM 평가'], ['≈1.9초', '턴 응답 지연 (p50)'], ['7개 tool', '+ 서버 가드 · 안전망']],
+    hook: '“대화는 LLM 에게, 책임은 코드에게.”',
+  },
+  s2: {
+    tag: '어떻게 동작하나요', title: '환자의 말 한 마디가 지나가는 길',
+    lead: '마이크에서 스피커까지 7단계 — 한 턴 약 2~4초',
+    steps: [
+      ['🎤 마이크', '환자가 말함<br>“주차는 돼요?”'],
+      ['STT', 'Web Speech (ko-KR)<br>1.8초 조용하면 발화 끝'],
+      ['안전망', '위험 단어 규칙 검사<br><b>LLM 보다 먼저</b> → 🔴'],
+      ['LLM 에이전트', 'Claude Haiku 5.5<br>의도 파악 → tool 선택'],
+      ['Tool + DB', '서버가 검증·실행<br>SQLite · FTS5 검색'],
+      ['말 다듬기', '{환자명} 치환<br>핵심 숫자 앞뒤 0.5초 쉼'],
+      ['🔊 TTS', 'Typecast 0.88배속<br>대시보드 실시간 반영'],
+    ],
+    ex: '<span class="q">예시</span> “주차는 돼요?” → 위험 없음 → LLM: <code>search_hospital_info("주차")</code> → DB: “본관 앞 주차장, 보훈 대상자 요금 감면” → LLM 이 이 사실로만 짧게 답하고 원래 안내로 복귀',
+    tl: [['발화 끝 대기 1.8초', 32, '#7a8aa3'], ['LLM + tool ≈ 1.9초', 34, '#0f8a7a'], ['TTS 생성 (캐시 시 즉시)', 20, '#10294a'], ['재생', 14, '#4a6a93']],
+    note: '끼어들기(barge-in): AI 가 말하는 중에 환자가 말하면 즉시 멈추고 듣습니다. “네, 네” 같은 맞장구와 스피커 에코는 무시.',
+  },
+  s3: {
+    tag: '아키텍처', title: '대화는 유연하게, 행동은 통제하게',
+    lead: '대사 스크립트 없음 — LLM 에는 “무엇을, 어떤 태도로” 말할지만 지시',
+    llmH: 'LLM 이 정하는 것', llm: ['무엇을 말할지 (문장 생성)', '대화 순서 · 공감 · 재질문', '어떤 tool 을 부를지'],
+    toolH: 'Tool = 할 수 있는 행동 7가지',
+    tools: ['본인 확인', '예약 조회', '병원 안내 검색', '콜백 등록 🔴🟡', '내원 확정', '변경 접수', '통화 종료'],
+    srvH: '서버(코드)가 지키는 것', srv: ['순서 가드 (본인 확인 → 예약 공개)', '사실은 DB 에서만', '위험·무응답·장애 시 강제 종료'],
+    guard: '<b>예)</b> LLM 이 본인 확인 전에 <b>예약 조회</b> 시도 → <span class="x">서버 거부 (is_error)</span> → LLM 이 “본인 맞으신가요?” 다시 질문 → <span class="ok">정상 진행</span>',
+    db: '<b>임베디드 DB (SQLite)</b> — 환자·예약 · 대화 기록 · tool 로그 · 콜백 · 문자 · 병원 안내 자료(FTS5 전문 검색). 설치 없이 파일 하나.',
+  },
+  s4: {
+    tag: '문제와 해결', title: '어려웠던 문제 → 이렇게 풀었습니다',
+    th: ['문제', '해결'],
+    rows: [
+      ['🗣', '어르신은 스크립트대로 말하지 않음', '목표·규칙만 주는 LLM 에이전트 — 질문·사정·맞장구에 자연스럽게 대응'],
+      ['🧾', 'LLM 은 사실을 지어낼 수 있음', '날짜·장소·안내는 tool(DB) 결과만 사용. 없으면 지어내지 않고 상담원 연결 🟡'],
+      ['🚨', '응급 신호를 절대 놓치면 안 됨', 'LLM 이전에 규칙 안전망으로 🔴 등록 → LLM 이 안 끝내면 서버가 긴급 이관'],
+      ['⏱', '전화에서 지연은 치명적', 'Haiku 5.5 · effort low, tool 동시 호출, 프롬프트·TTS 캐시 → p50 1.9초'],
+      ['🔁', 'AI 목소리를 마이크가 다시 인식 (에코)', '맞장구·에코 필터 + 이어폰 시연. 실서비스는 WebRTC 에코 제거(AEC)'],
+      ['🔒', '환자 개인정보', 'LLM 에는 실명 대신 {환자명} 토큰, 본인 확인 전 예약 정보 비공개'],
+      ['📏', 'LLM 품질은 어떻게 증명?', '실제 Claude 로 명세서 분기 10건 자동 평가(eval) — 7/10 → 버그 2개 수정 → 10/10'],
+    ],
+  },
+  s5: {
+    tag: '결과와 다음 단계', title: '지금 되는 것, 다음에 할 것',
+    resH: '검증 결과',
+    kpi: [['10/10', '실제 LLM 평가<br>(명세서 분기)'], ['30개', '자동 테스트<br>(가짜 LLM, 무료)'], ['p90 2.6초', '턴 지연<br>(LLM + tool)']],
+    res: ['정상 내원 · 일정 변경 · 보호자 동의/거절 · 약 문의 · 응급 · 무응답 · 병원 질문 모두 통과', '대시보드: 통화 상태 · 🔴/🟡 콜백 · 알림톡/SMS · 턴별 tool 기록 실시간'],
+    nextH: '다음 단계',
+    next: [
+      ['실제 전화망', 'LiveKit + SIP — 에코 제거(AEC)·VAD 로 진짜 전화 품질'],
+      ['체감 지연 ↓', '첫 문장 스트리밍 → 바로 TTS 재생'],
+      ['고령자 음성', 'CLOVA STT + 사투리·고령자 평가셋'],
+      ['시나리오 2·3', '산불 대피·퇴원 관리 = 프롬프트 + tool 추가만'],
+    ],
+    closing: '대화는 LLM 에게, 책임은 코드에게.',
+  },
+  s6: {
+    badge: '발표자 노트 (공유용 아님)', title: '발표 시작 아이디어 · 시연 순서 · 예상 질문',
+    openH: ['① 라이브로 시작', '② 질문으로 시작', '③ 경험으로 시작'],
+    open: [
+      ['“설명 전에, 먼저 전화를 한 통 걸어 보겠습니다.”', '홍길동 발신 → 30초 정상 흐름 → 그다음 슬라이드'],
+      ['“통화 중 어르신이 ‘근데 가슴이 좀 답답해요’ 하시면, 스크립트 봇은 어떻게 할까요?”', '→ 바로 🔴 안전망 시연'],
+      ['“귀사의 AI 영실이와 직접 통화해 보고, 같은 문제를 제 방식으로 풀어 봤습니다.”', '관심과 준비성을 보여 줌 (비판 X, 존중)'],
+    ],
+    demoH: '시연 3분 순서',
+    demo: ['정상: “네, 맞아요” → 금식 안내 → “갈게요”', '자유 질문: “주차는 돼요?”', '약 문의: “혈압약 먹어도 돼요?” → 🟡', '변경: “그날은 못 가요” → “다음 주 화요일”', '응급: “가슴이 너무 아파요” → 🔴 긴급 이관'],
+    qaH: '예상 질문 → 한 줄 답',
+    qa: [
+      ['왜 스크립트가 아니라 LLM?', '자유 발화 대응. 안전은 서버 가드·안전망이 책임'],
+      ['LLM 이 틀리면?', '가드가 거부 + 폴백 문장 + eval 로 측정'],
+      ['비용·속도?', 'Haiku · 턴 ≈1.9초 · 통화당 수 센트 미만'],
+      ['실제 전화는?', 'LiveKit SIP — 같은 에이전트 그대로 연결'],
+    ],
+  },
+},
+en: {
+  foot: 'AI Bohuni · Scenario 1 prototype',
+  s1: {
+    kicker: 'Veterans Hospital · Scenario 1 · Pre-visit reminder call',
+    title: 'AI Bohuni<br>A voice agent that talks without a script',
+    sub: 'STT → LLM (tool calling) → TTS · live demo in the browser',
+    stats: [['10/10', 'spec branches passed with the real LLM'], ['≈1.9 s', 'turn response time (p50)'], ['7 tools', '+ server guards · safety net']],
+    hook: '“Let the LLM talk. Let the code be responsible.”',
+  },
+  s2: {
+    tag: 'How it works', title: 'The journey of one sentence',
+    lead: 'From microphone to speaker in 7 steps — about 2–4 s per turn',
+    steps: [
+      ['🎤 Mic', 'The patient speaks<br>“Is there parking?”'],
+      ['STT', 'Web Speech (ko-KR)<br>1.8 s of silence = done'],
+      ['Safety net', 'Rule-based risk check<br><b>before the LLM</b> → 🔴'],
+      ['LLM agent', 'Claude Haiku 5.5<br>understands → picks a tool'],
+      ['Tool + DB', 'Server checks & runs it<br>SQLite · FTS5 search'],
+      ['Polish', 'Insert patient name<br>0.5 s pause around key numbers'],
+      ['🔊 TTS', 'Typecast at 0.88× speed<br>dashboard updates live'],
+    ],
+    ex: '<span class="q">Example</span> “Is there parking?” → no risk → LLM: <code>search_hospital_info("parking")</code> → DB: “lot in front of the main building, discount for veterans” → the LLM answers only with that fact, then returns to the reminder',
+    tl: [['Wait for end of speech 1.8 s', 32, '#7a8aa3'], ['LLM + tools ≈ 1.9 s', 34, '#0f8a7a'], ['TTS (instant if cached)', 20, '#10294a'], ['Playback', 14, '#4a6a93']],
+    note: 'Barge-in: if the patient speaks while the AI is talking, the AI stops and listens. Backchannels (“yes, yes”) and speaker echo are ignored.',
+  },
+  s3: {
+    tag: 'Architecture', title: 'Flexible conversation, controlled actions',
+    lead: 'No dialogue script — the LLM is only told what to say and in what manner',
+    llmH: 'The LLM decides', llm: ['what to say (writes every sentence)', 'conversation order · empathy · re-asking', 'which tool to call'],
+    toolH: 'Tools = the 7 allowed actions',
+    tools: ['Verify identity', 'Get appointment', 'Search hospital info', 'Register callback 🔴🟡', 'Confirm visit', 'Request reschedule', 'End call'],
+    srvH: 'The server (code) enforces', srv: ['order guards (identity → appointment)', 'facts only from the DB', 'forced end on risk · silence · failure'],
+    guard: '<b>e.g.</b> LLM tries <b>get appointment</b> before identity check → <span class="x">server rejects (is_error)</span> → LLM asks “Am I speaking with the patient?” → <span class="ok">continues correctly</span>',
+    db: '<b>Embedded DB (SQLite)</b> — patients & appointments · transcripts · tool logs · callbacks · SMS · hospital FAQ (FTS5 full-text search). One file, no install.',
+  },
+  s4: {
+    tag: 'Problems & solutions', title: 'Hard problems → how I solved them',
+    th: ['Problem', 'Solution'],
+    rows: [
+      ['🗣', 'Elderly patients don’t follow a script', 'An LLM agent given goals & rules — handles questions, excuses, small talk naturally'],
+      ['🧾', 'LLMs can make facts up', 'Facts only from tools (DB). Not found → no guessing, hand over to staff 🟡'],
+      ['🚨', 'An emergency must never be missed', 'Rules flag 🔴 before the LLM → if the LLM doesn’t end the call, the server does'],
+      ['⏱', 'Latency kills phone calls', 'Haiku 5.5 · low effort, parallel tool calls, prompt & TTS cache → p50 1.9 s'],
+      ['🔁', 'The mic hears the AI’s own voice (echo)', 'Echo filter + earphones in the demo. Production: WebRTC echo cancellation (AEC)'],
+      ['🔒', 'Patient privacy', 'LLM never sees the real name ({name} token); no details before ID check'],
+      ['📏', 'How to prove LLM quality?', 'Automated eval: 10 spec branches with real Claude — 7/10 → fixed 2 bugs → 10/10'],
+    ],
+  },
+  s5: {
+    tag: 'Results & next steps', title: 'What works now, what comes next',
+    resH: 'Verification',
+    kpi: [['10/10', 'real-LLM eval<br>(spec branches)'], ['30', 'automated tests<br>(fake LLM, free)'], ['p90 2.6 s', 'turn latency<br>(LLM + tools)']],
+    res: ['Normal visit · reschedule · guardian yes/no · medication question · emergency · no answer · hospital question — all pass', 'Dashboard: call status · 🔴/🟡 callbacks · SMS · per-turn tool log, live'],
+    nextH: 'Next steps',
+    next: [
+      ['Real phone network', 'LiveKit + SIP — echo cancellation (AEC) & VAD for real call quality'],
+      ['Lower perceived latency', 'Stream the first sentence → start TTS immediately'],
+      ['Elderly voices', 'CLOVA STT + dialect & elderly speech test set'],
+      ['Scenarios 2 · 3', 'Wildfire evacuation, discharge care = new prompt + tools only'],
+    ],
+    closing: 'Let the LLM talk. Let the code be responsible.',
+  },
+  s6: {
+    badge: 'Presenter notes (not for sharing)', title: 'Opening ideas · demo order · expected questions',
+    openH: ['① Open live', '② Open with a question', '③ Open with experience'],
+    open: [
+      ['“Before I explain anything, let me make a phone call.”', 'Call Hong Gil-dong → 30 s normal flow → then the slides'],
+      ['“If an elderly patient says mid-call ‘my chest feels tight’, what does a script bot do?”', '→ show the 🔴 safety net right away'],
+      ['“I called your AI Youngsil myself, then solved the same problem my way.”', 'Shows interest & preparation (respectful, no criticism)'],
+    ],
+    demoH: '3-minute demo order',
+    demo: ['Normal: “Yes, that’s me” → fasting info → “I’ll come”', 'Free question: “Is there parking?”', 'Medication: “Can I take my BP pill?” → 🟡', 'Reschedule: “I can’t make it” → “next Tuesday”', 'Emergency: “My chest hurts a lot” → 🔴 escalation'],
+    qaH: 'Expected questions → one-line answers',
+    qa: [
+      ['Why an LLM, not a script?', 'Handles free speech. Safety is owned by server guards'],
+      ['What if the LLM is wrong?', 'Guards reject + fallback lines + measured by eval'],
+      ['Cost & speed?', 'Haiku · ≈1.9 s per turn · under a few cents per call'],
+      ['Real phone calls?', 'LiveKit SIP — same agent, plugged in'],
+    ],
+  },
+},
+uz: {
+  foot: 'AI Bohuni · 1-ssenariy prototipi',
+  s1: {
+    kicker: 'Veteranlar kasalxonasi · 1-ssenariy · qabul oldidan eslatma qo‘ng‘irog‘i',
+    title: 'AI Bohuni<br>Skriptsiz gaplashadigan ovozli agent',
+    sub: 'STT → LLM (tool calling) → TTS · brauzerda jonli namoyish',
+    stats: [['10/10', 'haqiqiy LLM bilan spetsifikatsiya testlari'], ['≈1,9 s', 'navbatga javob vaqti (p50)'], ['7 ta tool', '+ server himoyasi · xavfsizlik to‘ri']],
+    hook: '“Gapirish — LLM’ga, javobgarlik — kodga.”',
+  },
+  s2: {
+    tag: 'Qanday ishlaydi', title: 'Bitta gapning yo‘li',
+    lead: 'Mikrofondan karnaygacha 7 bosqich — bir navbat taxminan 2–4 soniya',
+    steps: [
+      ['🎤 Mikrofon', 'Bemor gapiradi<br>“Avtoturargoh bormi?”'],
+      ['STT', 'Web Speech (ko-KR)<br>1,8 s jimlik = gap tugadi'],
+      ['Xavfsizlik to‘ri', 'Xavfli so‘zlar qoidasi<br><b>LLM’dan oldin</b> → 🔴'],
+      ['LLM agent', 'Claude Haiku 5.5<br>ma’noni tushunadi → tool tanlaydi'],
+      ['Tool + baza', 'Server tekshiradi va bajaradi<br>SQLite · FTS5 qidiruv'],
+      ['Gapni sayqallash', 'Bemor ismini qo‘yadi<br>muhim sonlar atrofida 0,5 s pauza'],
+      ['🔊 TTS', 'Typecast 0,88× tezlik<br>dashboard jonli yangilanadi'],
+    ],
+    ex: '<span class="q">Misol</span> “Avtoturargoh bormi?” → xavf yo‘q → LLM: <code>search_hospital_info("주차")</code> → baza: “bosh bino oldida avtoturargoh, veteranlarga chegirma” → LLM faqat shu fakt bilan javob beradi va eslatmaga qaytadi',
+    tl: [['Gap tugashini kutish 1,8 s', 32, '#7a8aa3'], ['LLM + tool ≈ 1,9 s', 34, '#0f8a7a'], ['TTS (keshda bo‘lsa darhol)', 20, '#10294a'], ['Ijro', 14, '#4a6a93']],
+    note: 'Gapni bo‘lish (barge-in): AI gapirayotganda bemor gapirsa, AI to‘xtab tinglaydi. “Ha, ha” kabi tasdiq so‘zlari va karnay aks-sadosi e’tiborsiz qoldiriladi.',
+  },
+  s3: {
+    tag: 'Arxitektura', title: 'Suhbat — erkin, harakat — nazoratda',
+    lead: 'Tayyor matn (skript) yo‘q — LLM’ga faqat “nima va qanday ohangda” gapirish aytiladi',
+    llmH: 'LLM hal qiladi', llm: ['nima deyishni (har bir gapni o‘zi tuzadi)', 'suhbat tartibi · hamdardlik · qayta so‘rash', 'qaysi tool’ni chaqirishni'],
+    toolH: 'Tool = ruxsat etilgan 7 ta harakat',
+    tools: ['Shaxsni tasdiqlash', 'Qabulni olish', 'Kasalxona ma’lumoti', 'Callback 🔴🟡', 'Kelishni tasdiqlash', 'Vaqtni ko‘chirish', 'Qo‘ng‘iroqni tugatish'],
+    srvH: 'Server (kod) kafolatlaydi', srv: ['tartib himoyasi (shaxs → qabul ma’lumoti)', 'faktlar faqat bazadan', 'xavf · jimlik · nosozlikda majburiy tugatish'],
+    guard: '<b>Misol:</b> LLM shaxsni tasdiqlamasdan <b>qabulni olmoqchi</b> → <span class="x">server rad etadi (is_error)</span> → LLM “Bemorning o‘zimisiz?” deb so‘raydi → <span class="ok">to‘g‘ri davom etadi</span>',
+    db: '<b>Ichki baza (SQLite)</b> — bemor va qabullar · suhbat yozuvi · tool loglari · callback · SMS · kasalxona FAQ (FTS5 matn qidiruvi). O‘rnatishsiz, bitta fayl.',
+  },
+  s4: {
+    tag: 'Muammo va yechim', title: 'Qiyin muammolar → qanday yechdim',
+    th: ['Muammo', 'Yechim'],
+    rows: [
+      ['🗣', 'Keksalar skript bo‘yicha gapirmaydi', 'Maqsad va qoidalar berilgan LLM agent — savol, bahona, gurungga tabiiy javob beradi'],
+      ['🧾', 'LLM faktni o‘ylab topishi mumkin', 'Sana, joy faqat tool (baza)dan. Topilmasa — o‘ylab topmaydi, xodimga uzatadi 🟡'],
+      ['🚨', 'Shoshilinch holatni o‘tkazib yubormaslik', 'LLM’dan oldin qoida 🔴 qo‘yadi → LLM tugatmasa, server o‘zi tez yordamga uzatadi'],
+      ['⏱', 'Telefonda kechikish halokatli', 'Haiku 5.5 · low effort, tool’lar parallel, prompt va TTS kesh → p50 1,9 s'],
+      ['🔁', 'Mikrofon AI ovozini qayta eshitadi (eho)', 'Eho filtri + demoda quloqchin. Production: WebRTC eho o‘chirish (AEC)'],
+      ['🔒', 'Bemor shaxsiy ma’lumoti', 'LLM haqiqiy ismni ko‘rmaydi ({ism} tokeni); tasdiqdan oldin qabul ma’lumoti yopiq'],
+      ['📏', 'LLM sifatini qanday isbotlash?', 'Eval: haqiqiy Claude bilan 10 ta holat — 7/10 → 2 ta xato tuzatildi → 10/10'],
+    ],
+  },
+  s5: {
+    tag: 'Natija va keyingi qadamlar', title: 'Hozir nima ishlaydi, keyin nima',
+    resH: 'Tekshiruv natijasi',
+    kpi: [['10/10', 'haqiqiy LLM eval<br>(spetsifikatsiya)'], ['30 ta', 'avtomatik test<br>(soxta LLM, bepul)'], ['p90 2,6 s', 'navbat kechikishi<br>(LLM + tool)']],
+    res: ['Oddiy kelish · ko‘chirish · vasiy rozi/rad · dori savoli · shoshilinch · jimlik · kasalxona savoli — hammasi o‘tdi', 'Dashboard: qo‘ng‘iroq holati · 🔴/🟡 callback · SMS · har navbat tool yozuvi, jonli'],
+    nextH: 'Keyingi qadamlar',
+    next: [
+      ['Haqiqiy telefon tarmog‘i', 'LiveKit + SIP — eho o‘chirish (AEC) va VAD bilan haqiqiy qo‘ng‘iroq sifati'],
+      ['Sezilarli tezlik', 'Birinchi gapni striming → TTS darhol boshlanadi'],
+      ['Keksalar ovozi', 'CLOVA STT + sheva va keksalar nutqi test to‘plami'],
+      ['2 · 3-ssenariy', 'Yong‘indan evakuatsiya, chiqishdan keyingi parvarish = faqat yangi prompt + tool'],
+    ],
+    closing: 'Gapirish — LLM’ga, javobgarlik — kodga.',
+  },
+  s6: {
+    badge: 'Taqdimotchi eslatmasi (ulashish uchun emas)', title: 'Boshlash g‘oyalari · demo tartibi · kutilgan savollar',
+    openH: ['① Jonli boshlash', '② Savol bilan boshlash', '③ Tajriba bilan boshlash'],
+    open: [
+      ['“설명 전에, 먼저 전화를 한 통 걸어 보겠습니다.”<br><small>(Tushuntirishdan oldin bitta qo‘ng‘iroq qilib ko‘ray.)</small>', 'Hong Gil-dong’ga qo‘ng‘iroq → 30 s oddiy oqim → keyin slaydlar'],
+      ['“통화 중 어르신이 ‘가슴이 좀 답답해요’ 하시면, 스크립트 봇은 어떻게 할까요?”<br><small>(Keksa bemor “ko‘kragim siqyapti” desa, skript-bot nima qiladi?)</small>', '→ darhol 🔴 xavfsizlik to‘rini ko‘rsatish'],
+      ['“귀사의 AI 영실이와 직접 통화해 보고, 같은 문제를 제 방식으로 풀어 봤습니다.”<br><small>(Sizning AI Yongsil bilan o‘zim gaplashib ko‘rdim va shu muammoni o‘z usulimda yechdim.)</small>', 'Qiziqish va tayyorgarlikni ko‘rsatadi (hurmat bilan, tanqidsiz)'],
+    ],
+    demoH: '3 daqiqalik demo tartibi',
+    demo: ['Oddiy: “네, 맞아요” → ochlik ko‘rsatmasi → “갈게요”', 'Erkin savol: “주차는 돼요?”', 'Dori: “혈압약 먹어도 돼요?” → 🟡', 'Ko‘chirish: “그날은 못 가요” → “다음 주 화요일”', 'Shoshilinch: “가슴이 너무 아파요” → 🔴 uzatish'],
+    qaH: 'Kutilgan savollar → bir qatorli javob',
+    qa: [
+      ['Nega skript emas, LLM?', 'Erkin nutqqa javob beradi. Xavfsizlik — server himoyasida'],
+      ['LLM xato qilsa-chi?', 'Himoya rad etadi + zaxira gaplar + eval bilan o‘lchanadi'],
+      ['Narx va tezlik?', 'Haiku · navbat ≈1,9 s · qo‘ng‘iroq uchun bir necha sentdan kam'],
+      ['Haqiqiy telefon?', 'LiveKit SIP — o‘sha agent shunchaki ulanadi'],
+    ],
+  },
+},
+};
+
+const params = new URLSearchParams(location.search);
+const lang = params.get('lang') || 'ko';
+const L = I18N[lang] || I18N.ko;
+document.documentElement.lang = lang;
+const foot = (n) => `<div class="foot"><span>${L.foot}</span><span>${n} / 5</span></div>`;
+const hdr = (tag) => `<div class="top"><span class="tag">${tag}</span><span>AI 보훈이</span></div>`;
+
+const s1 = `<section class="slide cover">
+  <div class="kicker">${L.s1.kicker}</div>
+  <h1>${L.s1.title}</h1>
+  <div class="sub">${L.s1.sub}</div>
+  <div class="stats">${L.s1.stats.map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('')}</div>
+  <div class="hook">${L.s1.hook}</div>
+  <div class="foot"><span>${L.foot}</span><span>1 / 5</span></div>
+</section>`;
+
+const cls = ['', '', 'safe', 'llm', 'llm', '', ''];
+const s2 = `<section class="slide">${hdr(L.s2.tag)}
+  <h2>${L.s2.title}</h2><div class="lead">${L.s2.lead}</div>
+  <div class="pipe">${L.s2.steps.map(([t, d], i) =>
+    `${i ? '<div class="arrow">›</div>' : ''}<div class="step ${cls[i]}"><div class="n">${i + 1}</div><div class="t">${t}</div><div class="d">${d}</div></div>`).join('')}</div>
+  <div class="example">${L.s2.ex}</div>
+  <div class="timeline">${L.s2.tl.map(([t, w, c]) => `<div style="flex:${w};background:${c}">${t}</div>`).join('')}</div>
+  <div class="note">↩ ${L.s2.note}</div>
+  ${foot(2)}</section>`;
+
+const li = (a) => `<ul>${a.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+const s3 = `<section class="slide">${hdr(L.s3.tag)}
+  <h2>${L.s3.title}</h2><div class="lead">${L.s3.lead}</div>
+  <div class="arch">
+    <div class="box llm"><h3>🧠 ${L.s3.llmH}</h3>${li(L.s3.llm)}</div>
+    <div class="box"><h3>🔧 ${L.s3.toolH}</h3><div class="chips">${L.s3.tools.map((t, i) => `<span class="chip ${i === 3 ? 'r' : ''}">${t}</span>`).join('')}</div></div>
+    <div class="box srv"><h3>🛡 ${L.s3.srvH}</h3>${li(L.s3.srv)}</div>
+  </div>
+  <div class="guard">${L.s3.guard}</div>
+  <div class="db">${L.s3.db}</div>
+  ${foot(3)}</section>`;
+
+const s4 = `<section class="slide">${hdr(L.s4.tag)}
+  <h2 style="margin-bottom:14px">${L.s4.title}</h2>
+  <table class="ps"><thead><tr><th>${L.s4.th[0]}</th><th></th><th>${L.s4.th[1]}</th></tr></thead><tbody>
+  ${L.s4.rows.map(([i, p, s]) => `<tr><td><span class="i">${i}</span>${p}</td><td class="arrowcell">→</td><td>${s}</td></tr>`).join('')}
+  </tbody></table>
+  ${foot(4)}</section>`;
+
+const s5 = `<section class="slide">${hdr(L.s5.tag)}
+  <h2 style="margin-bottom:18px">${L.s5.title}</h2>
+  <div class="two">
+    <div><h3 style="font-size:21px;color:var(--navy);margin-bottom:12px">✅ ${L.s5.resH}</h3>
+      <div class="kpi">${L.s5.kpi.map(([b, s]) => `<div><b>${b}</b><span>${s}</span></div>`).join('')}</div>
+      <div class="box" style="padding:16px 20px">${li(L.s5.res)}</div></div>
+    <div><h3 style="font-size:21px;color:var(--navy);margin-bottom:12px">🚀 ${L.s5.nextH}</h3>
+      <ol class="next">${L.s5.next.map(([b, s]) => `<li><b>${b}</b> — ${s}</li>`).join('')}</ol></div>
+  </div>
+  <div class="closing">${L.s5.closing}</div>
+  ${foot(5)}</section>`;
+
+const s6 = `<section class="slide notes">
+  <div><span class="badge">📝 ${L.s6.badge}</span></div>
+  <h2 style="font-size:28px;margin-bottom:16px">${L.s6.title}</h2>
+  <div class="grid3">${L.s6.open.map(([say, how], i) => `<div class="card"><div class="h">${L.s6.openH[i]}</div><p class="say">${say}</p><p style="color:var(--muted)">${how}</p></div>`).join('')}</div>
+  <div class="row2">
+    <div class="card"><div class="h">🎬 ${L.s6.demoH}</div><ol>${L.s6.demo.map((d) => `<li>${d}</li>`).join('')}</ol></div>
+    <div class="card"><div class="h">❓ ${L.s6.qaH}</div><ul>${L.s6.qa.map(([q, a]) => `<li><b>${q}</b> → ${a}</li>`).join('')}</ul></div>
+  </div>
+</section>`;
+
+// ?notes=0 → 발표자 노트(6쪽) 제외, 공유용 5쪽
+const all = params.get('notes') === '0' ? [s1, s2, s3, s4, s5] : [s1, s2, s3, s4, s5, s6];
+// ?page=N → 한 쪽만 (미리보기용)
+document.getElementById('root').innerHTML = params.get('page') ? all[Number(params.get('page')) - 1] : all.join('');
+</script>
+</body>
+</html>
